@@ -1,7 +1,7 @@
 package simpledb.parse;
 
 /**
- * The parser for the <i>create index</i> statement.
+ * The parser for the <i>commandcreate index</i> statement.
  * @author Edward Sciore
  */
 public class CreateIndexData {

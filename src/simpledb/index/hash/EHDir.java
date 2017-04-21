@@ -91,7 +91,6 @@ public class EHDir {
         contents.close();
         dirSize <<= 1;
         ++globalDepth;
-        System.out.println("OK now what");
     }
 
     public void close() {
@@ -122,7 +121,6 @@ public class EHDir {
                     currentBlock = i;
                 }
                 contents.setBucket(offset, newBucket);
-                contents.printAll();
             }
         }
     }
@@ -138,5 +136,16 @@ public class EHDir {
         int numBucket = page.getBucket(bucketOffset);
         page.close();
         return numBucket;
+    }
+
+    void print(TableInfo bi) {
+        close();
+        contents = new EHDirPage(
+                new Block(ti.fileName(), 0),
+                ti,
+                tx
+        );
+        contents.printAll(globalDepth, bi);
+        contents.close();
     }
 }

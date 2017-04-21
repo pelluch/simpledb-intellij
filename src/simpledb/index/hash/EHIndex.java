@@ -111,4 +111,8 @@ public class EHIndex implements Index {
         return 1;
     }
 
+    public void printDirectory() {
+        dir.print(bucketInfo);
+    }
+
 }

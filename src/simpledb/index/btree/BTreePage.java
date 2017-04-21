@@ -256,6 +256,6 @@ public class BTreePage {
    }
    
    private int slotpos(int slot) {
-      return INT_SIZE + INT_SIZE + (slot * slotsize);
+      return INT_SIZE * 4 + (slot * slotsize);
    }
 }

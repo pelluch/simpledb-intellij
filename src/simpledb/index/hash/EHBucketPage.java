@@ -132,8 +132,17 @@ public class EHBucketPage {
 
     public void printAll() {
         int numRecs = getNumRecs();
+        System.out.println("\tNum Records: " + numRecs);
         for(int i = 0; i < numRecs; ++i) {
-            System.out.println(getInt(i, "dataval"));
+            Constant val = getVal(i, "dataval");
+            int depth = getLocalDepth();
+            int hash = val.hashCode();
+            int mask = depth == 0 ? 0 : ~(-1 << depth);
+            int masked = hash & mask;
+            String entry =
+                    String.format("%" + depth + "s",
+                            Integer.toBinaryString(masked)).replace(' ', '0');
+            System.out.println("\t" + entry + " - " + Integer.toBinaryString(hash) + " = " + val);
         }
     }
     public boolean isFull() {

@@ -1,6 +1,7 @@
 package com.pelluch.simpledb;
 
 import simpledb.index.Index;
+import simpledb.index.hash.EHIndex;
 import simpledb.metadata.IndexInfo;
 import simpledb.metadata.MetadataMgr;
 import simpledb.query.*;
@@ -109,14 +110,14 @@ public class Main {
                 }
             }
 
-            /* Random random = new Random();
+            // Random random = new Random();
 
             for(int i = 1; i < 1000; ++i) {
                 System.out.println("Doing: " + i);
                 addStudent(studentScan, i, "joe " + i, 2010, 30);
                 insertIntoIndex(studentScan, indexes);
             }
-            */
+
 
             IndexInfo ii = idxInfo.get("sid");
             startTime = System.nanoTime();
@@ -129,6 +130,14 @@ public class Main {
 
             studentScan.close();
             tx.commit();
+
+            /* Index idx = ii.open();
+            if(idx instanceof EHIndex) {
+                EHIndex ehIndex = (EHIndex)idx;
+                ehIndex.printDirectory();
+            }
+            idx.close();
+            */
 
         } catch (SQLException e) {
             e.printStackTrace();

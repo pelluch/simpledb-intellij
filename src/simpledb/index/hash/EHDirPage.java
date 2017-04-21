@@ -94,11 +94,24 @@ public class EHDirPage {
         return (BLOCK_SIZE - INT_SIZE) / info.recordLength();
     }
 
-    public void printAll() {
+    void printAll(int globalDepth, TableInfo bi) {
         System.out.println("Dir entries:");
         currentblk = new Block(ti.fileName(), 0);
         for(int i = 0; i < getNumRecs(); ++i) {
-            System.out.println(getBucket(i));
+            String entry =
+                    String.format("%" + globalDepth + "s",
+                            Integer.toBinaryString(i)).replace(' ', '0');
+            System.out.print(entry + " --> ");
+            int numBucket = getBucket(i);
+            System.out.println(numBucket);
+            EHBucket bucket = new EHBucket(
+                    new Block(bi.fileName(), numBucket),
+                    bi,
+                    null,
+                    tx
+            );
+            bucket.print();
+            bucket.close();
         }
         System.out.println("------");
     }

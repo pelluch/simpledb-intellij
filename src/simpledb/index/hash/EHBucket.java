@@ -25,7 +25,9 @@ public class EHBucket {
         this.tx = tx;
         this.searchkey = searchkey;
         contents = new EHBucketPage(blk, ti, tx);
-        currentslot = contents.findSlotBefore(searchkey);
+        if(searchkey != null) {
+            currentslot = contents.findSlotBefore(searchkey);
+        }
     }
 
     int getLocalDepth() {
@@ -107,20 +109,21 @@ public class EHBucket {
         }
 
         contents.setNumRecs(0);
-        for(int i = 0; i < originalEntries.size(); ++i) {
-            insert(originalEntries.get(i).rid,
-                    originalEntries.get(i).dataVal);
+        for (IndexEntry originalEntry : originalEntries) {
+            insert(originalEntry.rid,
+                    originalEntry.dataVal);
         }
         newBucket.contents.setNumRecs(0);
-        for(int i = 0; i < newEntries.size(); ++i) {
-            newBucket.insert(newEntries.get(i).rid,
-                    newEntries.get(i).dataVal);
+        for (IndexEntry newEntry : newEntries) {
+            newBucket.insert(newEntry.rid,
+                    newEntry.dataVal);
         }
 
-        System.out.println("Old bucket entries: ");
+        /* System.out.println("Old bucket entries: ");
         print();
         System.out.println("New bucket entries: ");
         newBucket.print();
+        */
         close();
         newBucket.close();
     }
@@ -130,7 +133,7 @@ public class EHBucket {
     }
 
     private class IndexEntry {
-        public RID rid;
-        public Constant dataVal;
+        RID rid;
+        Constant dataVal;
     }
 }

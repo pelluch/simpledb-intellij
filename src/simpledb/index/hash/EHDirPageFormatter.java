@@ -8,23 +8,22 @@ import static java.sql.Types.INTEGER;
 import static simpledb.file.Page.BLOCK_SIZE;
 import static simpledb.file.Page.INT_SIZE;
 
-public class EHBucketPageFormatter implements PageFormatter {
-
+/**
+ * Created by pablo on 4/21/17.
+ */
+public class EHDirPageFormatter implements PageFormatter {
     private TableInfo ti;
-    private int localDepth;
 
     @Override
     public void format(Page page) {
-        page.setInt(0, localDepth);
-        page.setInt(INT_SIZE, 0);  // #records = 0
+        page.setInt(0, 0); // Num records
         int recsize = ti.recordLength();
-        for (int pos=2*INT_SIZE; pos+recsize<=BLOCK_SIZE; pos += recsize)
+        for (int pos=INT_SIZE; pos + recsize <= BLOCK_SIZE; pos += recsize)
             makeDefaultRecord(page, pos);
     }
 
-    EHBucketPageFormatter(TableInfo ti, int localDepth) {
+    EHDirPageFormatter(TableInfo ti) {
         this.ti = ti;
-        this.localDepth = localDepth;
     }
 
     private void makeDefaultRecord(Page page, int pos) {
@@ -36,5 +35,4 @@ public class EHBucketPageFormatter implements PageFormatter {
                 page.setString(pos + offset, "");
         }
     }
-
 }

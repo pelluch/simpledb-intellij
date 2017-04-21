@@ -15,7 +15,7 @@ public class CreateStudentDB {
 			stmt.executeUpdate(s);
 			System.out.println("Table STUDENT created.");
 
-			s = "insert into STUDENT(SId, SName, MajorId, GradYear) values ";
+			/* s = "insert into STUDENT(SId, SName, MajorId, GradYear) values ";
 			String[] studvals = {"(1, 'joe', 10, 2004)",
 								 "(2, 'amy', 20, 2004)",
 								 "(3, 'max', 10, 2005)",
@@ -84,7 +84,7 @@ public class CreateStudentDB {
 			for (int i=0; i<enrollvals.length; i++)
 				stmt.executeUpdate(s + enrollvals[i]);
 			System.out.println("ENROLL records inserted.");
-
+			*/
 		}
 		catch(SQLException e) {
 			e.printStackTrace();
@@ -98,5 +98,6 @@ public class CreateStudentDB {
 				e.printStackTrace();
 			}
 		}
+
 	}
 }

@@ -1,12 +1,6 @@
 package simpledb.index.hash;
 
 import simpledb.file.Block;
-import simpledb.index.btree.BTreeDir;
-import simpledb.index.btree.DirEntry;
-import simpledb.query.Constant;
-import simpledb.query.TableScan;
-import simpledb.record.RID;
-import simpledb.record.Schema;
 import simpledb.record.TableInfo;
 import simpledb.tx.Transaction;
 
@@ -39,21 +33,37 @@ public class EHDirPage {
         }
     }
 
-    public boolean isFull() {
+    public boolean next() {
+        ++currentslot;
+        if(currentslot >= getNumRecs()) {
+            return false;
+        }
+        return true;
+    }
+
+    private boolean isFull() {
         return slotpos(getNumRecs()+1) >= BLOCK_SIZE;
     }
 
-    public void insertDir(int bucket) {
+    boolean insertDir(int bucket) {
+        if(isFull()) {
+            return false;
+        }
         insert();
         setBucket(getNumRecs() - 1, bucket);
+        return true;
     }
 
-    private int getBucket(int slot) {
+    int getCurrentBucket() {
+        return tx.getInt(currentblk, slotpos(currentslot));
+    }
+
+    int getBucket(int slot) {
         int pos = slotpos(slot);
         return tx.getInt(currentblk, pos);
     }
 
-    private void setBucket(int slot, int val) {
+    void setBucket(int slot, int val) {
         int pos = slotpos(slot);
         tx.setInt(currentblk, pos, val);
     }
@@ -62,10 +72,13 @@ public class EHDirPage {
         tx.setInt(currentblk, 0, n);
     }
     private void insert() {
+        if(isFull()) {
+            throw new IllegalStateException("Bucket is full");
+        }
         setNumRecs(getNumRecs() + 1);
     }
 
-    public int getNumRecs() {
+    int getNumRecs() {
         return tx.getInt(currentblk, 0);
     }
 
@@ -73,20 +86,21 @@ public class EHDirPage {
         return INT_SIZE + (slot * slotsize);
     }
 
-    public void insert(int bucket) {
-        if(isFull()) {
-            throw new IllegalStateException("Bucket is full");
+    int getMaxCapacity() {
+        return (BLOCK_SIZE - INT_SIZE) / slotsize;
+    }
+
+    static int getMaxCapacity(TableInfo info) {
+        return (BLOCK_SIZE - INT_SIZE) / info.recordLength();
+    }
+
+    public void printAll() {
+        System.out.println("Dir entries:");
+        currentblk = new Block(ti.fileName(), 0);
+        for(int i = 0; i < getNumRecs(); ++i) {
+            System.out.println(getBucket(i));
         }
-        int numRecs = getNumRecs();
-        DirEntry e = leaf.insert(datarid);
-        leaf.close();
-        if (e == null)
-            return;
-        BTreeDir root = new BTreeDir(rootblk, dirTi, tx);
-        DirEntry e2 = root.insert(e);
-        if (e2 != null)
-            root.makeNewRoot(e2);
-        root.close();
+        System.out.println("------");
     }
 
 }

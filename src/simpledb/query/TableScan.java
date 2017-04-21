@@ -106,9 +106,4 @@ public class TableScan implements UpdateScan {
    public void moveToRid(RID rid) {
       rf.moveToRid(rid);
    }
-   // Get number of records in current block
-   public int firstEmptySlot() {
-      return rf.firstEmptySlot();
-   }
-
 }

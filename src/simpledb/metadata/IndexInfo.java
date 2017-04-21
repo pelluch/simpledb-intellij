@@ -2,6 +2,8 @@ package simpledb.metadata;
 
 import static java.sql.Types.INTEGER;
 import static simpledb.file.Page.BLOCK_SIZE;
+
+import simpledb.index.hash.EHIndex;
 import simpledb.server.SimpleDB;
 import simpledb.tx.Transaction;
 import simpledb.record.*;
@@ -47,7 +49,7 @@ public class IndexInfo {
    public Index open() {
       Schema sch = schema();
       // Create new HashIndex for hash indexing
-      return new BTreeIndex(idxname, sch, tx);
+      return new EHIndex(idxname, sch, tx);
    }
    
    /**
@@ -66,7 +68,7 @@ public class IndexInfo {
       int rpb = BLOCK_SIZE / idxti.recordLength();
       int numblocks = si.recordsOutput() / rpb;
       // Call HashIndex.searchCost for hash indexing
-      return BTreeIndex.searchCost(numblocks, rpb);
+      return EHIndex.searchCost(numblocks, rpb);
    }
    
    /**

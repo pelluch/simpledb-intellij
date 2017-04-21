@@ -47,7 +47,7 @@ public class IndexInfo {
    public Index open() {
       Schema sch = schema();
       // Create new HashIndex for hash indexing
-      return new HashIndex(idxname, sch, tx);
+      return new BTreeIndex(idxname, sch, tx);
    }
    
    /**
@@ -66,7 +66,7 @@ public class IndexInfo {
       int rpb = BLOCK_SIZE / idxti.recordLength();
       int numblocks = si.recordsOutput() / rpb;
       // Call HashIndex.searchCost for hash indexing
-      return HashIndex.searchCost(numblocks, rpb);
+      return BTreeIndex.searchCost(numblocks, rpb);
    }
    
    /**

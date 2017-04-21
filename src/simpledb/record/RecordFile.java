@@ -161,4 +161,9 @@ public class RecordFile {
       RecordFormatter fmtr = new RecordFormatter(ti);
       tx.append(filename, fmtr);
    }
+
+   // Get number of records in current block
+   public int firstEmptySlot() {
+      return rp.firstEmptySlot();
+   }
 }

@@ -103,7 +103,7 @@ public class RecordPage {
       int position = currentpos();
       tx.setInt(blk, position, EMPTY);
    }
-   
+
    /**
     * Inserts a new, blank record somewhere in the page.
     * Return false if there were no available slots.
@@ -158,5 +158,12 @@ public class RecordPage {
          currentslot++;
       }
       return false;
+   }
+
+   // Get number of records in current block
+   public int firstEmptySlot() {
+       currentslot = -1;
+       searchFor(EMPTY);
+       return currentpos();
    }
 }

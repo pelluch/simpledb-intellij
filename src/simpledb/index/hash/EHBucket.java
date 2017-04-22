@@ -8,6 +8,7 @@ import simpledb.record.TableInfo;
 import simpledb.tx.Transaction;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 
 /**
@@ -63,6 +64,19 @@ public class EHBucket {
             */
     }
 
+    /**
+     * Deletes the leaf record having the specified dataRID
+     * @param datarid the dataRId whose record is to be deleted
+     */
+    public void delete(RID datarid) {
+        while(next()) {
+            if (getDataRid().equals(datarid)) {
+                contents.delete(currentslot);
+                return;
+            }
+        }
+    }
+
     public boolean insert(RID dataid, Constant searchkey) {
         this.searchkey = searchkey;
         if(contents.isFull()) {
@@ -90,11 +104,15 @@ public class EHBucket {
 
         System.out.println("Original entries: ");
         print();
-
+        boolean allEqual = true;
+        Constant first = contents.getDataVal(0);
         for(int i = 0; i < contents.getNumRecs(); ++i) {
             IndexEntry entry = new IndexEntry();
             entry.rid = contents.getDataRid(i);
             entry.dataVal = contents.getDataVal(i);
+            if(allEqual && !entry.dataVal.equals(first)) {
+                allEqual = false;
+            }
             int bitValue = (entry.dataVal.hashCode() >> localDepth - 1) & 1;
             if(bitValue == 0) {
                 originalEntries.add(entry);
@@ -104,7 +122,7 @@ public class EHBucket {
 
         }
 
-        if(contents.getNumRecs() == originalEntries.size()) {
+        if(allEqual) {
             throw new IllegalStateException("All elements in bucket are equal");
         }
 

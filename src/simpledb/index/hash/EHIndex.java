@@ -86,7 +86,8 @@ public class EHIndex implements Index {
 
     @Override
     public void delete(Constant dataval, RID datarid) {
-
+        beforeFirst(dataval);
+        bucket.delete(datarid);
     }
 
     @Override

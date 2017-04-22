@@ -5,6 +5,7 @@ import simpledb.query.Constant;
 import simpledb.query.IntConstant;
 import simpledb.query.StringConstant;
 import simpledb.record.RID;
+import simpledb.record.Schema;
 import simpledb.record.TableInfo;
 import simpledb.tx.Transaction;
 
@@ -22,6 +23,22 @@ public class EHBucketPage {
     private TableInfo ti;
     private Transaction tx;
     private int slotsize;
+
+    /**
+     * Deletes the index record at the specified slot.
+     * @param slot the slot of the deleted index record
+     */
+    public void delete(int slot) {
+        for (int i=slot+1; i<getNumRecs(); i++)
+            copyRecord(i, i-1);
+        setNumRecs(getNumRecs()-1);
+    }
+
+    private void copyRecord(int from, int to) {
+        Schema sch = ti.schema();
+        for (String fldname : sch.fields())
+            setVal(to, fldname, getVal(from, fldname));
+    }
 
     EHBucketPage(Block currentblk, TableInfo ti, Transaction tx) {
         this.currentblk = currentblk;

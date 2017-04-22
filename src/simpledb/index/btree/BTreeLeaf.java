@@ -15,7 +15,13 @@ public class BTreeLeaf {
    private Constant searchkey;
    private BTreePage contents;
    private int currentslot;
-   
+
+   private boolean hasTransferred = false;
+   private Constant transferredKey = null;
+   public enum TransferDirection { LEFT, RIGHT }
+   private TransferDirection transferDirection = null;
+   private boolean hasOverflowed = false;
+   private int lastBlock = -1;
    /**
     * Opens a page to hold the specified leaf block.
     * The page is positioned immediately before the first record
@@ -31,6 +37,23 @@ public class BTreeLeaf {
       this.searchkey = searchkey;
       contents = new BTreePage(blk, ti, tx);
       currentslot = contents.findSlotBefore(searchkey);
+      while(contents.getDataVal(0).equals(searchkey)
+              && contents.getLeft() != -1) {
+
+         BTreePage left = new BTreePage(new Block(ti.fileName(),
+                 contents.getLeft()), ti, tx);
+         if(left.getDataVal(left.getNumRecs() - 1).equals(searchkey)) {
+            contents.close();
+            contents = left;
+            currentslot = contents.findSlotBefore(searchkey);
+         } else {
+            break;
+         }
+      }
+   }
+
+   public boolean canReceiveWithoutSplit() {
+      return contents.canReceiveWithoutSplit();
    }
    
    /**
@@ -39,7 +62,7 @@ public class BTreeLeaf {
    public void close() {
       contents.close();
    }
-   
+
    /**
     * Moves to the next leaf record having the 
     * previously-specified search key.
@@ -48,12 +71,31 @@ public class BTreeLeaf {
     */
    public boolean next() {
       currentslot++;
-      if (currentslot >= contents.getNumRecs()) 
-         return tryOverflow();
-      else if (contents.getDataVal(currentslot).equals(searchkey))
+      contents.print();
+      if (currentslot >= contents.getNumRecs()) {
+         if(tryOverflow()) {
+            return true;
+         }
+
+         int right = contents.getRight();
+         if(right != -1) {
+            contents.close();
+            contents = new BTreePage(new Block(ti.fileName(), right),
+                    ti,
+                    tx);
+            currentslot = 0;
+            if(contents.getDataVal(currentslot).equals(searchkey)) {
+               return true;
+            }
+         }
+         return false;
+      }
+      else if (contents.getDataVal(currentslot).equals(searchkey)) {
          return true;
-      else 
+      }
+      else {
          return tryOverflow();
+      }
    }
    
    /**
@@ -75,7 +117,29 @@ public class BTreeLeaf {
          return;
       }
    }
-   
+
+   private void transferLeft(BTreePage left) {
+      hasTransferred = true;
+      transferredKey = contents.transferLeft(left);
+   }
+
+   private void transferRight(BTreePage right) {
+      hasTransferred = true;
+      transferredKey = contents.transferRight(right);
+   }
+
+   boolean hasTransferred() {
+      return hasTransferred;
+   }
+
+   TransferDirection getTransferDirection() {
+      return transferDirection;
+   }
+
+   Constant getTransferredKey() {
+      return transferredKey;
+   }
+
    /**
     * Inserts a new leaf record having the specified dataRID
     * and the previously-specified search key.
@@ -90,6 +154,9 @@ public class BTreeLeaf {
     * @return the directory entry of the newly-split page, if one exists.
     */
    public DirEntry insert(RID datarid) {
+      hasTransferred = false;
+      transferredKey = null;
+      transferDirection = null;
    	// bug fix:  If the page has an overflow page 
    	// and the searchkey of the new record would be lowest in its page, 
    	// we need to first move the entire contents of that page to a new block
@@ -107,6 +174,27 @@ public class BTreeLeaf {
       contents.insertLeaf(currentslot, searchkey, datarid);
       if (!contents.isFull())
          return null;
+
+      BTreePage left = getLeftPage();
+      if(left != null) {
+         if (canTransfer(left)) {
+            transferDirection = TransferDirection.LEFT;
+            transferLeft(left);
+            return null;
+         }
+         left.close();
+      }
+      BTreePage right = getRightPage();
+      if(right != null) {
+         if (canTransfer(right)) {
+            transferDirection = TransferDirection.RIGHT;
+            transferRight(right);
+            return null;
+         }
+         right.close();
+      }
+
+
       // else page is full, so split it
       Constant firstkey = contents.getDataVal(0);
       Constant lastkey  = contents.getDataVal(contents.getNumRecs()-1);
@@ -130,11 +218,41 @@ public class BTreeLeaf {
             while (contents.getDataVal(splitpos-1).equals(splitkey))
                splitpos--;
          }
+
          Block newblk = contents.split(splitpos, -1);
          return new DirEntry(splitkey, newblk.number());
       }
    }
-   
+
+   BTreePage getLeftPage() {
+      int left = contents.getLeft();
+      if(left == -1) {
+         return null;
+      }
+      return new BTreePage(
+              new Block(ti.fileName(),
+                      left),
+              ti,
+              tx);
+   }
+
+   BTreePage getRightPage() {
+      int right = contents.getRight();
+      if(right == -1) {
+         return null;
+      }
+      return new BTreePage(
+              new Block(ti.fileName(),
+                      right),
+              ti,
+              tx);
+   }
+   boolean canTransfer(BTreePage neighbour) {
+      if(neighbour == null)
+         return false;
+      return neighbour.canReceiveWithoutSplit();
+   }
+
    private boolean tryOverflow() {
       Constant firstkey = contents.getDataVal(0);
       int flag = contents.getFlag();

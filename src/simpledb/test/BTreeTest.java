@@ -3,6 +3,7 @@ package simpledb.test;
 import java.util.Iterator;
 import java.util.Map;
 
+import com.sun.xml.internal.bind.v2.runtime.reflect.opt.Const;
 import junit.framework.TestCase;
 
 import org.junit.Before;
@@ -12,15 +13,14 @@ import org.junit.runners.JUnit4;
 
 import simpledb.index.Index;
 import simpledb.index.planner.IndexUpdatePlanner;
+import simpledb.index.query.IndexSelectPlan;
 import simpledb.metadata.IndexInfo;
 import simpledb.metadata.IndexMgr;
 import simpledb.metadata.TableMgr;
+import simpledb.parse.DeleteData;
 import simpledb.parse.InsertData;
 import simpledb.parse.Parser;
-import simpledb.query.Constant;
-import simpledb.query.Plan;
-import simpledb.query.TablePlan;
-import simpledb.query.UpdateScan;
+import simpledb.query.*;
 import simpledb.record.RID;
 import simpledb.record.RecordFile;
 import simpledb.record.Schema;
@@ -43,7 +43,7 @@ public class BTreeTest extends TestCase
 
     private static final String idxname = "index";
     private static final String tblname = "testindextable";
-    private static final String fldname = "id";
+    private static final String fldname = "fld1";
     private static final String serverDirectory = "testdb0";
 
     private void createDummyDatabase(String tblname, Schema sch)
@@ -72,13 +72,50 @@ public class BTreeTest extends TestCase
     @Test
     public void createIndexTest()
     {
-        String s = "insert into testindextable(id, fld1, fld2) values (1, 'joe', 'loco') ";
-        Parser parser = new Parser(s);
-        Object obj = parser.updateCmd();
-
         IndexUpdatePlanner p = new IndexUpdatePlanner();
-        if (obj instanceof InsertData)
-            p.executeInsert((InsertData)obj, tx);
+
+        String[] commands = new String[] {
+                "insert into testindextable(id, fld1, fld2) values (1, 'joe', 'this')",
+                "insert into testindextable(id, fld1, fld2) values (2, 'abe', 'is')",
+                "insert into testindextable(id, fld1, fld2) values (3, 'adolph', 'just')",
+                "insert into testindextable(id, fld1, fld2) values (4, 'alphonse', 'some')",
+                "insert into testindextable(id, fld1, fld2) values (5, 'pablo', 'random')",
+                "insert into testindextable(id, fld1, fld2) values (6, 'joseph', 'text')",
+                "insert into testindextable(id, fld1, fld2) values (7, 'alex', 'because')",
+                "insert into testindextable(id, fld1, fld2) values (8, 'ana', 'i')",
+                "insert into testindextable(id, fld1, fld2) values (9, 'carol', 'want')",
+                "insert into testindextable(id, fld1, fld2) values (10, 'mary', 'some')",
+                "insert into testindextable(id, fld1, fld2) values (11, 'gayle', 'quick')",
+                "insert into testindextable(id, fld1, fld2) values (12, 'beth', 'examples')"
+        };
+
+        for(String s : commands) {
+            // System.out.println(s);
+            Parser parser = new Parser(s);
+            Object obj = parser.updateCmd();
+            if (obj instanceof InsertData) {
+                p.executeInsert((InsertData) obj, tx);
+            } else if(obj instanceof DeleteData) {
+                p.executeDelete((DeleteData)obj, tx);
+            }
+
+        }
+
+        findWithIndex("fld1", new StringConstant("joseph"), "id");
+
+
+
+        /* IndexSelectPlan indexSel = new IndexSelectPlan(
+                p,
+                idxmgr.getIndexInfo(tblname,
+                        tx)
+                .get("id"),
+                new IntConstant(9),
+                tx
+        );
+        */
+
+
 
         // first, insert the record
         /* UpdateScan scan = (UpdateScan) p.open();
@@ -114,6 +151,37 @@ public class BTreeTest extends TestCase
         //if (obj instanceof InsertData)
         //    uplanner.executeInsert((InsertData)obj, tx);
 
+    }
+
+    private static void deleteWithIndex(String column,
+                                        Constant dataVal,
+                                        String printColumn) {
+        Plan plan = new TablePlan(tblname, tx);
+        IndexSelectPlan selectPlan = new IndexSelectPlan(
+                plan, idxmgr.getIndexInfo(tblname, tx).get(column),
+                dataVal,
+                tx
+        );
+    }
+
+    private static void findWithIndex(String column,
+                                      Constant dataVal,
+                                      String printColumn) {
+
+        Plan plan = new TablePlan(tblname, tx);
+        IndexSelectPlan selectPlan = new IndexSelectPlan(
+                plan, idxmgr.getIndexInfo(tblname, tx).get(column),
+                dataVal,
+                tx
+        );
+        Scan scan = selectPlan.open();
+        scan.beforeFirst();
+        while (scan.next()) {
+            System.out.println("Found  " + scan.getVal(column) + " - " +
+            scan.getVal(printColumn));
+        }
+
+        scan.close();
     }
 
 }

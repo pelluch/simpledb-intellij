@@ -14,7 +14,21 @@ public class BTreeDir {
    private Transaction tx;
    private String filename;
    private BTreePage contents;
+   private int currentSlot = -1;
 
+   void print() {
+      contents.print();
+   }
+
+   void printTree(int depth) {
+      StringBuilder tabs = new StringBuilder();
+      for(int i = 0; i < depth; ++i) {
+         tabs.append(depth);
+      }
+   }
+   void printTree() {
+      printTree(0);
+   }
    /**
     * Creates an object to hold the contents of the specified
     * B-tree block.
@@ -29,6 +43,9 @@ public class BTreeDir {
       contents = new BTreePage(blk, ti, tx);
    }
 
+   void setKey(int slot, Constant key) {
+      contents.setKey(slot, key);
+   }
    /**
     * Closes the directory page.
     */
@@ -42,14 +59,23 @@ public class BTreeDir {
     * @param searchkey the search key value
     * @return the block number of the leaf block containing that search key
     */
-   public int search(Constant searchkey) {
+   public BTSearchResult search(Constant searchkey) {
       Block childblk = findChildBlock(searchkey);
+      int leaf;
+      int parent = contents.getBlockNum();
       while (contents.getFlag() > 0) {
+         parent = childblk.number();
          contents.close();
          contents = new BTreePage(childblk, ti, tx);
          childblk = findChildBlock(searchkey);
       }
-      return childblk.number();
+      leaf = childblk.number();
+      BTSearchResult result = new BTSearchResult();
+      result.leaf = leaf;
+      result.parent = parent;
+      result.parentSlot = currentSlot;
+      // contents.print();
+      return result;
    }
 
    /**
@@ -99,6 +125,8 @@ public class BTreeDir {
       contents.insertDir(newslot, e.dataVal(), e.blockNumber());
       if (!contents.isFull())
          return null;
+
+
       // else page is full, so split it
       int level = contents.getFlag();
       int splitpos = contents.getNumRecs() / 2;
@@ -108,10 +136,10 @@ public class BTreeDir {
    }
 
    private Block findChildBlock(Constant searchkey) {
-      int slot = contents.findSlotBefore(searchkey);
-      if (contents.getDataVal(slot+1).equals(searchkey))
-         slot++;
-      int blknum = contents.getChildNum(slot);
+      currentSlot = contents.findSlotBefore(searchkey);
+      if (contents.getDataVal(currentSlot+1).equals(searchkey))
+         currentSlot++;
+      int blknum = contents.getChildNum(currentSlot);
       return new Block(filename, blknum);
    }
 }

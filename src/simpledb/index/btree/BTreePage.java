@@ -19,7 +19,10 @@ public class BTreePage {
    private TableInfo ti;
    private Transaction tx;
    private int slotsize;
-   
+
+   int getBlockNum() {
+       return currentblk.number();
+   }
    /**
     * Opens a page for the specified B-tree block.
     * @param currentblk a reference to the B-tree block
@@ -32,6 +35,10 @@ public class BTreePage {
       this.tx = tx;
       slotsize = ti.recordLength();
       tx.pin(currentblk);
+   }
+
+   void setKey(int slot, Constant key) {
+       setVal(slot, "dataval", key);
    }
    
    /**
@@ -64,7 +71,54 @@ public class BTreePage {
    public boolean isFull() {
       return slotpos(getNumRecs()+1) >= BLOCK_SIZE;
    }
-   
+
+   public boolean canReceiveWithoutSplit() {
+      return slotpos(getNumRecs() + 2) < BLOCK_SIZE;
+   }
+
+   Constant transferRight(BTreePage right) {
+       return transfer(right, getNumRecs() - 1, 0);
+   }
+
+   // Remove first and add to left
+   Constant transferLeft(BTreePage left) {
+       return transfer(left, 0, left.getNumRecs());
+   }
+
+   private Constant transfer(BTreePage dest, int sourceSlot, int destSlot) {
+       /* System.out.println("Original block records: ");
+       print();
+       System.out.println("Neighbour's records");
+       dest.print();
+       */
+
+       dest.insert(destSlot);
+       Schema sch = ti.schema();
+       Constant transferredKey =
+               getVal(sourceSlot, "dataval");
+       for (String fldname : sch.fields())
+           dest.setVal(destSlot, fldname,
+                   getVal(sourceSlot, fldname));
+       delete(sourceSlot);
+       /* System.out.println("Original block records: ");
+       print();
+       System.out.println("Neighbour's records");
+       dest.print();
+      */
+       dest.close();
+       return transferredKey;
+   }
+
+   // Utility debugging function, print all page contents
+   void print() {
+       int numRecs = getNumRecs();
+       for (int i = 0; i < numRecs; ++i) {
+           System.out.print(getVal(i, "dataval") + " ");
+       }
+       System.out.println();
+       System.out.println();
+   }
+
    /**
     * Splits the page at the specified position.
     * A new page is created, and the records of the page
@@ -78,8 +132,23 @@ public class BTreePage {
       BTreePage newpage = new BTreePage(newblk, ti, tx);
       transferRecs(splitpos, newpage);
       newpage.setFlag(flag);
+      // If we are splitting a leaf (not overflow block)
+      // if(flag == -1) {
+         // This.right neighbor = Right block
+      tx.setInt(currentblk, INT_SIZE * 3, newblk.number());
+      // Neighrbor.left = this block
+      tx.setInt(newblk, INT_SIZE * 2, currentblk.number());
+      // }
       newpage.close();
       return newblk;
+   }
+
+   int getLeft() {
+      return tx.getInt(currentblk, INT_SIZE * 2);
+   }
+
+   int getRight() {
+      return tx.getInt(currentblk, INT_SIZE * 3);
    }
    
    /**
@@ -237,7 +306,7 @@ public class BTreePage {
       for (String fldname : sch.fields())
          setVal(to, fldname, getVal(from, fldname));
    }
-   
+
    private void transferRecs(int slot, BTreePage dest) {
       int destslot = 0;
       while (slot < getNumRecs()) {
@@ -258,4 +327,6 @@ public class BTreePage {
    private int slotpos(int slot) {
       return INT_SIZE * 4 + (slot * slotsize);
    }
+
+
 }

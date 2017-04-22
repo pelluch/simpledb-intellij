@@ -16,6 +16,7 @@ public class BTreeIndex implements Index {
    private TableInfo dirTi, leafTi;
    private BTreeLeaf leaf = null;
    private Block rootblk;
+   private BTSearchResult results = null;
 
    /**
     * Opens a B-tree index for the specified index.
@@ -69,7 +70,8 @@ public class BTreeIndex implements Index {
    public void beforeFirst(Constant searchkey) {
       close();
       BTreeDir root = new BTreeDir(rootblk, dirTi, tx);
-      int blknum = root.search(searchkey);
+      results = root.search(searchkey);
+      int blknum = results.leaf;
       root.close();
       Block leafblk = new Block(leafTi.fileName(), blknum);
       leaf = new BTreeLeaf(leafblk, leafTi, searchkey, tx);
@@ -84,6 +86,7 @@ public class BTreeIndex implements Index {
    public boolean next() {
       return leaf.next();
    }
+
 
    /**
     * Returns the dataRID value from the current leaf record.
@@ -108,12 +111,35 @@ public class BTreeIndex implements Index {
       beforeFirst(dataval);
       DirEntry e = leaf.insert(datarid);
       leaf.close();
-      if (e == null)
+
+      if (e == null) {
+         if(leaf.hasTransferred()) {
+            int parent = results.parent;
+            int slot = results.parentSlot;
+            if(leaf.getTransferDirection() == BTreeLeaf.TransferDirection.RIGHT) {
+               ++slot;
+            }
+            BTreeDir dir = new BTreeDir(
+                    new Block(dirTi.fileName(), parent),
+                    dirTi,
+                    tx
+            );
+            // System.out.println("Parent before split:");
+            // dir.print();
+            dir.setKey(slot, leaf.getTransferredKey());
+            // System.out.println("Parent after split:");
+            // dir.print();
+            System.out.println("-------------------");
+            dir.close();
+         }
          return;
+      }
       BTreeDir root = new BTreeDir(rootblk, dirTi, tx);
+      // root.print();
       DirEntry e2 = root.insert(e);
       if (e2 != null)
          root.makeNewRoot(e2);
+      // root.print();
       root.close();
    }
 
